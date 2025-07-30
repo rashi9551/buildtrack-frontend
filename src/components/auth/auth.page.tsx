@@ -97,7 +97,7 @@ export default function AuthPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <AuthForm isSignUp={isSignUp} />
+            <AuthForm isSignUp={isSignUp} setIsSignUp={setIsSignUp} />
               </CardContent>
             </Card>
           </div>

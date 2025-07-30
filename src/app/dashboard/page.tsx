@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,9 +8,29 @@ import { Building2, LogOut, Bell, UserCog, HardHat } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ProjectManagerDashboard } from "@/components/dashboard/project-manager-dashboard"
 import { SiteWorkerDashboard } from "@/components/dashboard/site-worker-dashboard"
+import { signOut, useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function DashboardPage() {
   const [userRole, setUserRole] = useState<"manager" | "worker">("manager")
+    const [hasGreeted, setHasGreeted] = useState(false);
+
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+
+  useEffect(() => {
+  const url = new URL(window.location.href);
+  const justSignedIn = url.searchParams.get("justSignedIn");
+
+  if (status === "authenticated" && justSignedIn && session.user && !hasGreeted) {
+    toast.success(`Welcome back, ${session.user.name ?? session.user.email ?? "there"}! 🎉`);
+    setHasGreeted(true);
+    url.searchParams.delete("justSignedIn");
+    window.history.replaceState({}, document.title, url.pathname);
+  }
+}, [status]);
 
   const currentUser = {
     id: userRole === "manager" ? 1 : 2,
@@ -70,8 +90,12 @@ export default function DashboardPage() {
                 </p>
               </div>
             </div>
-
-            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-500 hover:text-red-600"
+              onClick={() => signOut({ callbackUrl: "/" })}
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
