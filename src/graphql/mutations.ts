@@ -12,12 +12,40 @@ export const SIGNUP_MUTATION = gql`
   }
 `;
 
-
-export const LOGIN_MUTATION = gql`
-  mutation Login($email: String!) {
-    login(email: $email) {
+export const GOOGLE_LOGIN_MUTATION = gql`
+  mutation GoogleLogin($email: String!) {
+    googleLogin(email: $email) {
       token
     }
   }
 `;
 
+export const CREATE_PROJECT = gql`
+  mutation CreateProject($input: CreateProjectInput!) {
+    createProject(input: $input) {
+      _id
+      name
+      description
+      location
+      startDate
+      endDate
+      budget
+      priority
+    }
+  }
+`;
+
+export const GET_PROJECTS = gql`
+  query {
+    projects {
+      _id
+      name
+      description
+      location
+      startDate
+      endDate
+      budget
+      priority
+    }
+  }
+`;

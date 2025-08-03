@@ -11,26 +11,56 @@ import { SiteWorkerDashboard } from "@/components/dashboard/site-worker-dashboar
 import { signOut, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { useMutation } from "@apollo/client"
+import { GOOGLE_LOGIN_MUTATION } from "@/graphql/mutations"
 
 export default function DashboardPage() {
   const [userRole, setUserRole] = useState<"manager" | "worker">("manager")
     const [hasGreeted, setHasGreeted] = useState(false);
+    const [googleLogin, { loading, error }] = useMutation(GOOGLE_LOGIN_MUTATION);
 
   const { data: session, status } = useSession()
   const router = useRouter()
 
 
-  useEffect(() => {
+useEffect(() => {
   const url = new URL(window.location.href);
   const justSignedIn = url.searchParams.get("justSignedIn");
 
-  if (status === "authenticated" && justSignedIn && session.user && !hasGreeted) {
-    toast.success(`Welcome back, ${session.user.name ?? session.user.email ?? "there"}! 🎉`);
-    setHasGreeted(true);
-    url.searchParams.delete("justSignedIn");
-    window.history.replaceState({}, document.title, url.pathname);
-  }
-}, [status]);
+  const loginIfNeeded = async () => {
+    if (
+      status === "authenticated" &&
+      justSignedIn &&
+      session.user &&
+      session.user.email &&
+      !hasGreeted
+    ) {
+      try {
+        const { data } = await googleLogin({
+          variables: { email: session.user.email },
+          fetchPolicy: "no-cache",
+        });
+
+        const token = data?.googleLogin?.token;
+        if (token) {
+          localStorage.setItem("token", token);
+          toast.success(`Welcome back, ${session.user.name ?? session.user.email}! 🎉`);
+        } else {
+          toast.error("No account found in BuildTrack");
+        }
+
+        setHasGreeted(true);
+        url.searchParams.delete("justSignedIn");
+        window.history.replaceState({}, document.title, url.pathname);
+      } catch (error) {
+        console.error("Login mutation failed:", error);
+        toast.error("Login failed");
+      }
+    }
+  };
+
+  loginIfNeeded();
+}, [status, session, hasGreeted, googleLogin]);
 
   const currentUser = {
     id: userRole === "manager" ? 1 : 2,
@@ -94,7 +124,7 @@ export default function DashboardPage() {
               variant="ghost"
               size="sm"
               className="text-gray-500 hover:text-red-600"
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={() => {signOut({ callbackUrl: "/" }); localStorage.removeItem('token')} }
             >
               <LogOut className="h-4 w-4" />
             </Button>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,75 +23,78 @@ import { CreateProjectDialog } from "@/components/dashboard/create-project-dialo
 import { CreateTaskDialog } from "@/components/dashboard/create-task-dialog"
 import { TaskDetailDialog } from "@/components/dashboard/task-detail-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { GET_PROJECTS } from "@/graphql/mutations"
+import { useQuery } from "@apollo/client"
+import { Project } from "@/interface/Project"
 
-// Static data
-const projects = [
-  {
-    id: 1,
-    name: "Downtown Office Complex",
-    description: "Modern 15-story office building with underground parking",
-    status: "In Progress",
-    startDate: "2024-01-15",
-    endDate: "2024-08-30",
-    progress: 65,
-    tasksCount: 12,
-    workersCount: 8,
-    budget: "$2.5M",
-    location: "Downtown District",
-  },
-  {
-    id: 2,
-    name: "Residential Tower A",
-    description: "25-floor residential building with amenities",
-    status: "Planning",
-    startDate: "2024-03-01",
-    endDate: "2024-12-15",
-    progress: 15,
-    tasksCount: 8,
-    workersCount: 12,
-    budget: "$4.2M",
-    location: "North Side",
-  },
-  {
-    id: 3,
-    name: "Shopping Mall Renovation",
-    description: "Complete renovation of existing shopping center",
-    status: "Completed",
-    startDate: "2023-08-01",
-    endDate: "2024-01-30",
-    progress: 100,
-    tasksCount: 15,
-    workersCount: 6,
-    budget: "$1.8M",
-    location: "West End",
-  },
-  {
-    id: 4,
-    name: "Highway Bridge Construction",
-    description: "New concrete bridge over highway intersection",
-    status: "In Progress",
-    startDate: "2024-02-01",
-    endDate: "2024-09-30",
-    progress: 40,
-    tasksCount: 20,
-    workersCount: 15,
-    budget: "$6.1M",
-    location: "Highway 101",
-  },
-  {
-    id: 5,
-    name: "City Park Pavilion",
-    description: "Community pavilion with event facilities",
-    status: "Planning",
-    startDate: "2024-04-01",
-    endDate: "2024-10-15",
-    progress: 5,
-    tasksCount: 6,
-    workersCount: 4,
-    budget: "$800K",
-    location: "Central Park",
-  },
-]
+// // Static data
+// const projects = [
+//   {
+//     id: 1,
+//     name: "Downtown Office Complex",
+//     description: "Modern 15-story office building with underground parking",
+//     status: "In Progress",
+//     startDate: "2024-01-15",
+//     endDate: "2024-08-30",
+//     progress: 65,
+//     tasksCount: 12,
+//     workersCount: 8,
+//     budget: "$2.5M",
+//     location: "Downtown District",
+//   },
+//   {
+//     id: 2,
+//     name: "Residential Tower A",
+//     description: "25-floor residential building with amenities",
+//     status: "Planning",
+//     startDate: "2024-03-01",
+//     endDate: "2024-12-15",
+//     progress: 15,
+//     tasksCount: 8,
+//     workersCount: 12,
+//     budget: "$4.2M",
+//     location: "North Side",
+//   },
+//   {
+//     id: 3,
+//     name: "Shopping Mall Renovation",
+//     description: "Complete renovation of existing shopping center",
+//     status: "Completed",
+//     startDate: "2023-08-01",
+//     endDate: "2024-01-30",
+//     progress: 100,
+//     tasksCount: 15,
+//     workersCount: 6,
+//     budget: "$1.8M",
+//     location: "West End",
+//   },
+//   {
+//     id: 4,
+//     name: "Highway Bridge Construction",
+//     description: "New concrete bridge over highway intersection",
+//     status: "In Progress",
+//     startDate: "2024-02-01",
+//     endDate: "2024-09-30",
+//     progress: 40,
+//     tasksCount: 20,
+//     workersCount: 15,
+//     budget: "$6.1M",
+//     location: "Highway 101",
+//   },
+//   {
+//     id: 5,
+//     name: "City Park Pavilion",
+//     description: "Community pavilion with event facilities",
+//     status: "Planning",
+//     startDate: "2024-04-01",
+//     endDate: "2024-10-15",
+//     progress: 5,
+//     tasksCount: 6,
+//     workersCount: 4,
+//     budget: "$800K",
+//     location: "Central Park",
+//   },
+// ]
 
 const tasks = [
   {
@@ -179,15 +182,32 @@ export function ProjectManagerDashboard({ currentUser }: ProjectManagerDashboard
   const [showCreateProject, setShowCreateProject] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [selectedTask, setSelectedTask] = useState<any>(null)
+const [projects, setProjects] = useState<Project[]>([]);
+  const { loading, error, data } = useQuery(GET_PROJECTS);
+  
+    useEffect(() => {
+      if (data?.projects) {
+        console.log(data,"=-=-=");
+        
+        setProjects(data.projects);
+      }
+      console.log(error);
+      
+    }, [data,error]);
 
+
+
+
+  if (loading) return <p>Loading...</p>;
   // Filter and paginate data
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.location.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || project.status.toLowerCase().replace(" ", "-") === statusFilter
-    return matchesSearch && matchesStatus
-  })
+      const matchesStatus =
+        statusFilter === "all" ||
+        project.status?.toLowerCase().replace(" ", "-") === statusFilter;    return matchesSearch && matchesStatus
+        })
 
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
@@ -428,8 +448,9 @@ export function ProjectManagerDashboard({ currentUser }: ProjectManagerDashboard
                       </div>
                     </div>
                     <div className="flex gap-2 mb-3">
-                      <Badge className={`${getStatusColor(project.status)} border text-xs`}>{project.status}</Badge>
-                    </div>
+<Badge className={`${getStatusColor(project.status ?? 'unknown')} border text-xs`}>
+  {project.status ?? 'N/A'}
+</Badge>                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">

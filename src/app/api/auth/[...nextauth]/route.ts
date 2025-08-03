@@ -5,10 +5,10 @@ import { jwtDecode } from "jwt-decode";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { FetchResult } from "@apollo/client";
-import { apolloClient } from "@/lib/apollo-client"; // your Apollo client instance
-import { LOGIN_MUTATION } from "@/graphql/mutations"; // mutation that returns JWT token from your backend
+import { GOOGLE_LOGIN_MUTATION } from "@/graphql/mutations"; // mutation that returns JWT token from your backend
 import { ExtendedJWT, ExtendedSession } from "@/interface/auth";
-
+import { createApolloClient } from "@/lib/apollo-server";
+const applloServer = createApolloClient()
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -30,22 +30,23 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // Called after provider authentication, decide if sign-in allowed
     async signIn({ user, account }) {
-  if (
-    (account?.provider === "google" || account?.provider === "github") &&
-    user.email
-  ) {
-    try {
-      const result: FetchResult<{
-        login: {
-          token: string;
-        };
-      }> = await apolloClient.mutate({
-        mutation: LOGIN_MUTATION,
-        variables: { email: user.email },
-        fetchPolicy: "no-cache",
-      });
+      if (
+        (account?.provider === "google" || account?.provider === "github") &&
+        user.email
+      ) {
+        try {
+          
+          const result: FetchResult<{
+            googleLogin: {
+              token: string;
+            };
+          }> = await applloServer.mutate({
+            mutation: GOOGLE_LOGIN_MUTATION,
+            variables: { email: user.email },
+            fetchPolicy: "no-cache",
+          });
 
-      const token = result.data?.login?.token;
+          const token = result.data?.googleLogin?.token;
           console.log(token, "=-=-=-=");
 
           if (!token) {
@@ -54,15 +55,21 @@ export const authOptions: NextAuthOptions = {
             );
             return `/?error=UserNotFound`;
           }
-
           // User exists, allow sign
           return true;
-        } catch (error) {
-          console.error("Error during signIn:", error);
+        } catch (error: any) {
+          console.error("Error during signIn:", {
+            message: error.message,
+            networkError:
+              error.networkError?.result?.errors || error.networkError,
+            graphQLErrors: error.graphQLErrors,
+            clientErrors: error.clientErrors,
+          });
           return `/?error=BackendError`;
         }
       }
-      // For other providers or missing email, allow by default
+
+      // For other provders or missing email, allow by default
       return true;
     },
 
@@ -83,8 +90,8 @@ export const authOptions: NextAuthOptions = {
       if (account && user && user.email) {
         try {
           const result: FetchResult<{ token: string }> =
-            await apolloClient.mutate({
-              mutation: LOGIN_MUTATION,
+            await applloServer.mutate({
+              mutation: GOOGLE_LOGIN_MUTATION,
               variables: { email: user.email },
               fetchPolicy: "no-cache",
             });

@@ -62,6 +62,7 @@ export function AuthForm({ isSignUp , setIsSignUp}: AuthFormProps) {
     onCompleted(data) {
       toast.success("Signup successful! Please log in.")
       setIsSignUp(!isSignUp)
+      // Optionally clear form or redirect user here
     },
     onError(error) {
       console.log(error)
